@@ -1,0 +1,22 @@
+version: "3.8"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: DockerFile
+      target: runner
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
+  dev:
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - ./:/app:cached
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install --silent && npm run dev"
+    environment:
+      - CHOKIDAR_USEPOLLING=true

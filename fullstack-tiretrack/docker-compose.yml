@@ -1,0 +1,145 @@
+services:
+  # ===== BACKEND =====
+  backend:
+    build:
+      context: ./Back-end-tiretrack-main
+      dockerfile: Dockerfile
+    container_name: tiretrack-backend
+    environment:
+      - DEBUG=False
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/tiretrack
+      - SECRET_KEY=your-secret-key-change-this
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    volumes:
+      - ./Back-end-tiretrack-main/Tiretrack_back:/app
+    networks:
+      - tiretrack-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===== FRONTEND =====
+  frontend:
+    build:
+      context: ./Front-end-tiretrack-main
+      dockerfile: Dockerfile
+    container_name: tiretrack-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - tiretrack-network
+
+  # ===== DATABASE =====
+  db:
+    image: postgres:15-alpine
+    container_name: tiretrack-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=tiretrack
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - tiretrack-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== ZABBIX SERVER =====
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:latest
+    container_name: zabbix-server
+    environment:
+      - DB_SERVER_HOST=zabbix-db
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix
+      - POSTGRES_DB=zabbix
+    ports:
+      - "10051:10051"
+    depends_on:
+      - zabbix-db
+    networks:
+      - tiretrack-network
+
+  # ===== ZABBIX DATABASE =====
+  zabbix-db:
+    image: postgres:15-alpine
+    container_name: zabbix-db
+    environment:
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix
+      - POSTGRES_DB=zabbix
+    volumes:
+      - zabbix_data:/var/lib/postgresql/data
+    networks:
+      - tiretrack-network
+
+  # ===== ZABBIX WEB =====
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:latest
+    container_name: zabbix-web
+    environment:
+      - DB_SERVER_HOST=zabbix-db
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix
+      - POSTGRES_DB=zabbix
+      - ZBX_SERVER_HOST=zabbix-server
+    ports:
+      - "8080:8080"
+    depends_on:
+      - zabbix-server
+      - zabbix-db
+    networks:
+      - tiretrack-network
+
+  # ===== ZABBIX AGENT =====
+  zabbix-agent:
+    image: zabbix/zabbix-agent:latest
+    container_name: zabbix-agent
+    environment:
+      - ZBX_HOSTNAME=tiretrack-server
+      - ZBX_SERVER_HOST=zabbix-server
+    ports:
+      - "10050:10050"
+    depends_on:
+      - zabbix-server
+    networks:
+      - tiretrack-network
+
+  # ===== GRAFANA =====
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - zabbix-server
+    networks:
+      - tiretrack-network
+
+volumes:
+  postgres_data:
+  zabbix_data:
+  grafana_data:
+
+networks:
+  tiretrack-network:
+    driver: bridge
+
