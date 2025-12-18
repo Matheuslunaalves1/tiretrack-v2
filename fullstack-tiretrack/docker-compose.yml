@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # ===== BACKEND =====
+  # ===== BACKEND (Versão Nuvem) =====
   backend:
     build:
       context: ./Back-end-tiretrack-main
@@ -16,7 +16,7 @@ services:
       - db
     environment:
       - DEBUG=True
-      - ALLOWED_HOSTS=* # <--- MUDANÇA 1: Libera o acesso pelo IP da nuvem
+      - ALLOWED_HOSTS=* # <--- MUDANÇA: Garante que o Django aceite o IP da nuvem
       - DB_ENGINE=django.db.backends.mysql
       - DB_NAME=tiretrack_docker
       - DB_USER=root
@@ -33,7 +33,7 @@ services:
       dockerfile: Dockerfile
     container_name: tiretrack-frontend
     ports:
-      - "5173:80"                  # <--- MUDANÇA 2: Corrigido para porta 80 interna
+      - "80:80"  # <--- MUDANÇA: Porta 80 permite acessar só digitando o IP
     depends_on:
       - backend
     networks:
@@ -59,7 +59,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ... (Pode manter o Zabbix e Grafana iguais, não mudaram) ...
+  # ===== MONITORAMENTO (Zabbix/Grafana) =====
   zabbix-server:
     image: zabbix/zabbix-server-pgsql:latest
     container_name: zabbix-server
