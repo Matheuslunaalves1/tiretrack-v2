@@ -5,7 +5,9 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', "django-insecure-troque-esta-chave-padrao")
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,backend').split(',')
+
+# MUDANÇA 1: Libera geral para evitar erro de DispersoHost/Host Invalido
+ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -57,7 +59,6 @@ WSGI_APPLICATION = 'tiretrack.wsgi.application'
 # BANCO DE DADOS (Configuração Híbrida: Docker + Local)
 DATABASES = {
     'default': {
-        
         'ENGINE': 'django.db.backends.mysql',
         'NAME': os.environ.get('DB_NAME', 'tiretrack_db'),
         'USER': os.environ.get('DB_USER', 'root'),
@@ -122,8 +123,12 @@ SWAGGER_SETTINGS = {
 }
 
 # CORS CONFIG
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-]
+# MUDANÇA 2: Libera todas as origens (essencial para IP externo funcionar sem erro de CORS)
+CORS_ALLOW_ALL_ORIGINS = True 
+
+# (Comentado para não dar conflito, já que ativamos o ALL_ORIGINS)
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:5173",
+#     "http://127.0.0.1:5173",
+#     "http://localhost:3000",
+# ]
