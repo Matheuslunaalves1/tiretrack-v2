@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # ===== BACKEND (Versão Nuvem) =====
+  # ===== BACKEND =====
   backend:
     build:
       context: ./Back-end-tiretrack-main
@@ -13,15 +13,15 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - db  # O Backend precisa esperar o banco nascer
+      - db
     environment:
       - DEBUG=True
-      # Configurações para MySQL DENTRO do Docker (Nuvem)
+      - ALLOWED_HOSTS=* # <--- MUDANÇA 1: Libera o acesso pelo IP da nuvem
       - DB_ENGINE=django.db.backends.mysql
       - DB_NAME=tiretrack_docker
       - DB_USER=root
       - DB_PASSWORD=root
-      - DB_HOST=db  # <--- MUDANÇA: Aponta para o container 'db' abaixo
+      - DB_HOST=db
       - DB_PORT=3306
     networks:
       - tiretrack-network
@@ -33,13 +33,13 @@ services:
       dockerfile: Dockerfile
     container_name: tiretrack-frontend
     ports:
-      - "5173:5173"
+      - "5173:80"                  # <--- MUDANÇA 2: Corrigido para porta 80 interna
     depends_on:
       - backend
     networks:
       - tiretrack-network
 
-  # ===== DATABASE (Obrigatório na Nuvem) =====
+  # ===== DATABASE =====
   db:
     image: mysql:8.0
     container_name: tiretrack-db
@@ -59,7 +59,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ... (Pode manter Zabbix/Grafana iguais ao anterior) ...
+  # ... (Pode manter o Zabbix e Grafana iguais, não mudaram) ...
   zabbix-server:
     image: zabbix/zabbix-server-pgsql:latest
     container_name: zabbix-server
