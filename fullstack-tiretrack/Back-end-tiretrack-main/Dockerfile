@@ -6,12 +6,15 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
- postgresql-client \
- gcc \
+	postgresql-client \
+	gcc \
+	build-essential \
+	pkg-config \
 	curl \
- python3-dev \
- libpq-dev \
- && rm -rf /var/lib/apt/lists/*
+	python3-dev \
+	libpq-dev \
+	default-libmysqlclient-dev \
+	&& rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/
 

@@ -1,28 +1,30 @@
+version: '3.8'
+
 services:
-  # ===== BACKEND =====
+  # ===== BACKEND (Versão Nuvem) =====
   backend:
     build:
       context: ./Back-end-tiretrack-main
       dockerfile: Dockerfile
     container_name: tiretrack-backend
-    environment:
-      - DEBUG=False
-      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/tiretrack
-      - SECRET_KEY=your-secret-key-change-this
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./Back-end-tiretrack-main/Tiretrack_back:/app
     ports:
       - "8000:8000"
     depends_on:
-      - db
-    volumes:
-      - ./Back-end-tiretrack-main/Tiretrack_back:/app
+      - db  # O Backend precisa esperar o banco nascer
+    environment:
+      - DEBUG=True
+      # Configurações para MySQL DENTRO do Docker (Nuvem)
+      - DB_ENGINE=django.db.backends.mysql
+      - DB_NAME=tiretrack_docker
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_HOST=db  # <--- MUDANÇA: Aponta para o container 'db' abaixo
+      - DB_PORT=3306
     networks:
       - tiretrack-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   # ===== FRONTEND =====
   frontend:
@@ -31,33 +33,33 @@ services:
       dockerfile: Dockerfile
     container_name: tiretrack-frontend
     ports:
-      - "80:80"
+      - "5173:5173"
     depends_on:
       - backend
     networks:
       - tiretrack-network
 
-  # ===== DATABASE =====
+  # ===== DATABASE (Obrigatório na Nuvem) =====
   db:
-    image: postgres:15-alpine
+    image: mysql:8.0
     container_name: tiretrack-db
+    command: --default-authentication-plugin=mysql_native_password
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=tiretrack
+      MYSQL_DATABASE: tiretrack_docker
+      MYSQL_ROOT_PASSWORD: root
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
     networks:
       - tiretrack-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # ===== ZABBIX SERVER =====
+  # ... (Pode manter Zabbix/Grafana iguais ao anterior) ...
   zabbix-server:
     image: zabbix/zabbix-server-pgsql:latest
     container_name: zabbix-server
@@ -73,7 +75,6 @@ services:
     networks:
       - tiretrack-network
 
-  # ===== ZABBIX DATABASE =====
   zabbix-db:
     image: postgres:15-alpine
     container_name: zabbix-db
@@ -86,7 +87,6 @@ services:
     networks:
       - tiretrack-network
 
-  # ===== ZABBIX WEB =====
   zabbix-web:
     image: zabbix/zabbix-web-nginx-pgsql:latest
     container_name: zabbix-web
@@ -104,7 +104,6 @@ services:
     networks:
       - tiretrack-network
 
-  # ===== ZABBIX AGENT =====
   zabbix-agent:
     image: zabbix/zabbix-agent:latest
     container_name: zabbix-agent
@@ -118,7 +117,6 @@ services:
     networks:
       - tiretrack-network
 
-  # ===== GRAFANA =====
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -135,11 +133,10 @@ services:
       - tiretrack-network
 
 volumes:
-  postgres_data:
+  mysql_data:
   zabbix_data:
   grafana_data:
 
 networks:
   tiretrack-network:
     driver: bridge
-

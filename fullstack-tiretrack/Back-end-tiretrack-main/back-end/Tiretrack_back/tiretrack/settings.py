@@ -1,11 +1,11 @@
+import os
 from datetime import timedelta
 from pathlib import Path
-from rest_framework import permissions
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = "troque-esta-chave"
-DEBUG = True
-ALLOWED_HOSTS = []
+SECRET_KEY = os.environ.get('SECRET_KEY', "django-insecure-troque-esta-chave-padrao")
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,backend').split(',')
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -14,13 +14,27 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-   
+    
+    # Suas Apps e Libs
     "corsheaders", 
     "rest_framework",
     "rest_framework_simplejwt",
     "drf_yasg",
     "core",
 ]
+
+MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+ROOT_URLCONF = "tiretrack.urls"
 
 TEMPLATES = [
     {
@@ -38,34 +52,49 @@ TEMPLATES = [
     },
 ]
 
-MIDDLEWARE = [
-    
-    "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-]
+WSGI_APPLICATION = 'tiretrack.wsgi.application'
 
-ROOT_URLCONF = "tiretrack.urls"
-
+# BANCO DE DADOS (Configuração Híbrida: Docker + Local)
 DATABASES = {
     'default': {
-        'ENGINE': 'mysql.connector.django',  
-        'NAME': 'tiretrack_db',              
-        'USER': 'root',                      
-        'PASSWORD': 'Matheus@1', 
-        'HOST': 'localhost',
-        'PORT': '3306',
+        
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('DB_NAME', 'tiretrack_db'),
+        'USER': os.environ.get('DB_USER', 'root'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'Matheus@1'),
+        'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
         'OPTIONS': {
             'autocommit': True,
         },
     }
 }
 
+# Configuração de Senha Padrão Django
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+LANGUAGE_CODE = 'pt-br'
+TIME_ZONE = 'America/Sao_Paulo'
+USE_I18N = True
+USE_TZ = True
+
+STATIC_URL = "static/"
+AUTH_USER_MODEL = 'core.Empresa'
+
+# REST FRAMEWORK CONFIG
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -73,10 +102,10 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
 }
 
+# JWT CONFIG
 SIMPLE_JWT = {"ACCESS_TOKEN_LIFETIME": timedelta(hours=1)}
-STATIC_URL = "static/"
-AUTH_USER_MODEL = 'core.Empresa'
 
+# SWAGGER CONFIG
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {
         'Bearer': {
@@ -92,8 +121,9 @@ SWAGGER_SETTINGS = {
     'LOGOUT_URL': '/admin/logout/',
 }
 
-
+# CORS CONFIG
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:3000",
 ]
